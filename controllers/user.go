@@ -9,6 +9,7 @@ import (
 	"github.com/enirox/go-authy/models"
 	"github.com/enirox/go-authy/utils"
 	"github.com/go-playground/validator"
+	"github.com/gorilla/mux"
 )
 
 var validate *validator.Validate
@@ -105,7 +106,17 @@ func UpdateUser(w http.ResponseWriter, r *http.Request ){
 
 func GetUser(w http.ResponseWriter, r *http.Request ){
 	// IMPLEMENT GET USER GET REQUEST HERE
-	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+	w.Header().Set("Content-Type", "application/json")
+
+	id := mux.Vars(r)["id"]
+	var user models.User
+
+	if err := models.DB.Where("id = ?", id).First(&user).Error; err != nil {
+		utils.RespondWithError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	json.NewEncoder(w).Encode(user)
 }
 
 func ChangePassword(w http.ResponseWriter, r *http.Request ){
