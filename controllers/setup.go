@@ -11,7 +11,7 @@ func New() http.Handler {
 
 	router.HandleFunc("/api/register", CreateUser).Methods("POST")
 	router.HandleFunc("/api/login", LoginUser).Methods("POST")
-	router.HandleFunc("/api/user/{id}", UpdateUser).Methods("PUT")
+	router.HandleFunc("/api/user/{id}", UpdateUser).Methods("PATCH")
 	router.HandleFunc("/api/user/{id}", GetUser).Methods("GET")
 	router.HandleFunc("/api/change-password", ChangePassword).Methods("POST")
 	router.HandleFunc("/api/logout", LogoutUser).Methods("POST")

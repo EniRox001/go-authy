@@ -21,6 +21,12 @@ type UserReq struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type UserUpdateReq struct {
+	FirstName string `json:"first_name" validate:"required"`
+	LastName string `json:"last_name" validate:"required"`
+	Email string `json:"email" validate:"required"`
+}
+
 type Res struct {
 	Status string `json:"status"`
 	Message string `json:"message"`
@@ -95,17 +101,43 @@ func CreateUser(w http.ResponseWriter, r *http.Request ){
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request ){
-	// IMPLEMENT LOGIN USER POST REQUEST HERE
 	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request ){
-	// IMPLEMENT UPDATE USER POST REQUEST HERE
-	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+	w.Header().Set("Content-Type", "application/json")
+
+	id := mux.Vars(r)["id"]
+	var user models.User
+
+	if err := models.DB.Where("id = ?", id).First(&user).Error; err != nil {
+		utils.RespondWithError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	var input UserUpdateReq
+
+	body, _ := io.ReadAll(r.Body)
+	_ = json.Unmarshal(body, &input)
+
+	validate = validator.New()
+	err := validate.Struct(input)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Validation error")
+		return
+	}
+
+	user.FirstName = input.FirstName
+	user.LastName = input.LastName
+	user.Email = input.Email
+
+	models.DB.Save(user)
+
+	json.NewEncoder(w).Encode(user)
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request ){
-	// IMPLEMENT GET USER GET REQUEST HERE
 	w.Header().Set("Content-Type", "application/json")
 
 	id := mux.Vars(r)["id"]
