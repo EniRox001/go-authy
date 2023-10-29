@@ -27,6 +27,10 @@ type UserUpdateReq struct {
 	Email string `json:"email" validate:"required"`
 }
 
+type UserResetReq struct {
+	Email string `json:"email" validate:"required"`
+}
+
 type Res struct {
 	Status string `json:"status"`
 	Message string `json:"message"`
@@ -101,6 +105,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request ){
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request ){
+	// IMPLEMENT LOGIN USER POST REQUEST HERE
 	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
 }
 
@@ -134,7 +139,11 @@ func UpdateUser(w http.ResponseWriter, r *http.Request ){
 
 	models.DB.Save(user)
 
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(Res{
+		Status: "success",
+		Message: "user updated successfully",
+		Data: user,
+	})
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request ){
@@ -148,7 +157,42 @@ func GetUser(w http.ResponseWriter, r *http.Request ){
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(Res{
+		Status: "success",
+		Message: "User account retrieved successfully",
+		Data: UserRes{
+			FirstName: user.FirstName,
+			LastName: user.LastName,
+			Email: user.Email,
+		},
+	})
+}
+
+func ResetPassword(w http.ResponseWriter, r *http.Request ){
+	var input UserResetReq
+
+	body, _ := io.ReadAll(r.Body)
+	_ = json.Unmarshal(body, &input)
+
+	validate = validator.New()
+	err := validate.Struct(input)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Validation Error")
+		return
+	}
+
+	
+	validEmail := !utils.CheckEmail(input.Email)
+
+	if validEmail == false {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Email address is invalid")
+		return
+	}
+
+	// otp := utils.GenerateOTP(6)
+
+	//TODO: Complete this function to send OTP
 }
 
 func ChangePassword(w http.ResponseWriter, r *http.Request ){
@@ -158,11 +202,6 @@ func ChangePassword(w http.ResponseWriter, r *http.Request ){
 
 func LogoutUser(w http.ResponseWriter, r *http.Request ){
 	// IMPLEMENT LOGOUT USER POST REQUEST HERE
-	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
-}
-
-func ResetPassword(w http.ResponseWriter, r *http.Request ){
-	// IMPLEMENT RESET PASSWORD POST REQUEST HERE
 	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
 }
 
