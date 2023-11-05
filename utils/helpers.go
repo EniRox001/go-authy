@@ -2,11 +2,14 @@ package utils
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/mail"
+	"net/smtp"
 
+	"github.com/jordan-wright/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -50,4 +53,16 @@ func GenerateOTP(max int) string {
 	}
 	return string(b)
 }
+
+func SendEmail(from, fromName, to, subject, authPassword, body string) {
+	e := email.NewEmail()
+	e.From = fromName + " <" + from + ">"
+	e.To = []string{to}
+	e.Subject = subject
+	e.HTML = []byte(body)
+	// e.Send("smtp.gmail.com:587", smtp.PlainAuth("", "enirox001@gmail.com", "colz rcfr scol bxkp", "smtp.gmail.com"))
+	e.SendWithTLS("smtp.gmail.com:465", smtp.PlainAuth("", from, authPassword, "smtp.gmail.com"), &tls.Config{ServerName: "smtp.gmail.com"})
+
+}
+
 

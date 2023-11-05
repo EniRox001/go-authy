@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/enirox/go-authy/models"
 	"github.com/enirox/go-authy/utils"
@@ -31,10 +32,23 @@ type UserResetReq struct {
 	Email string `json:"email" validate:"required"`
 }
 
+type ChangePasswordReq struct {
+	Password string `json:"password" validate:"required"`
+}
+
+type VerifyOTPReq struct {
+	OTP string `json:"otp" validate:"required"`
+}
+
 type Res struct {
 	Status string `json:"status"`
 	Message string `json:"message"`
 	Data interface{} `json:"data"`
+}
+
+type MessageRes struct {
+	Status string `json:"status"`
+	Message string `json:"message"`
 }
 
 type UserRes struct {
@@ -42,6 +56,10 @@ type UserRes struct {
 	LastName string `json:"last_name"`
 	Email string `json:"email"`
 }
+
+var otp string
+var otpResetEmail string
+var canChangePassword = false
 
 func CreateUser(w http.ResponseWriter, r *http.Request ){
 	var input UserReq 
@@ -181,7 +199,6 @@ func ResetPassword(w http.ResponseWriter, r *http.Request ){
 		utils.RespondWithError(w, http.StatusBadRequest, "Validation Error")
 		return
 	}
-
 	
 	validEmail := !utils.CheckEmail(input.Email)
 
@@ -190,14 +207,89 @@ func ResetPassword(w http.ResponseWriter, r *http.Request ){
 		return
 	}
 
-	// otp := utils.GenerateOTP(6)
+	otp = utils.GenerateOTP(6)
+	otpResetEmail = input.Email
 
-	//TODO: Complete this function to send OTP
+	utils.SendEmail(os.Getenv("ADMIN_EMAIL"), "GoAuth", input.Email, "Reset Password OTP for Your Account", os.Getenv("ADMIN_PASSWORD"), "<div><p><strong>Subject: Reset Password OTP for Your Account</strong></p><p>Dear User,</p><p>We have received a request to reset the password for your account at GoAuth. To ensure the security of your account, we have generated a one-time password (OTP) for you to complete the password reset process.</p><p>Your OTP code is: <strong>" + otp + "</strong></p><p>Please use this code within the next 30 minutes to reset your password. If you did not request this password reset or believe this email was sent in error, please contact our support team immediately at goAuthy@gmail.com or +234 8108080358.</p><p>Thank you for choosing GoAuth for your online needs. We are committed to keeping your account secure and your data protected.</p><p>Sincerely,</p><p>GoAuth<br>+234 8108080358</p></div>",)
+
+	json.NewEncoder(w).Encode(MessageRes{
+		Status: "success",
+		Message: "Reset Passowrd OTP sent successfully",
+	})
+
+	}
+
+func VerifyOTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	var input VerifyOTPReq
+
+	body, _ := io.ReadAll(r.Body)
+	_ = json.Unmarshal(body, &input)
+
+	validate = validator.New()
+	err := validate.Struct(input)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Validation Error")
+		return
+	}
+
+	isValidOTP := input.OTP == otp
+
+	if !isValidOTP {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid OTP")
+		return
+	}
+
+	canChangePassword = true
+
+	json.NewEncoder(w).Encode(MessageRes{
+		Status: "success",
+		Message: "OTP Verified successfully",
+	})
 }
+	
 
-func ChangePassword(w http.ResponseWriter, r *http.Request ){
-	// IMPLEMENT CHANGE PASSWORD POST REQUEST HERE
-	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+func ChangePassword(w http.ResponseWriter, r *http.Request){
+	w.Header().Set("Content-Type", "application/json")
+
+	var input ChangePasswordReq
+	var user models.User
+
+	body, _ := io.ReadAll(r.Body)
+	_ = json.Unmarshal(body, &input)
+
+	validate = validator.New()
+	err := validate.Struct(input)
+
+	if !canChangePassword {
+		utils.RespondWithError(w, http.StatusBadRequest, "OTP not verified")
+		return
+	}
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Validation Error")
+		return
+	}
+
+	if err := models.DB.Where("email = ?", otpResetEmail).First(&user).Error; err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "User not found")
+		return
+	}
+
+	hashedPassword, _:= utils.HashPassword(input.Password)
+
+	user.Password = hashedPassword
+
+	models.DB.Save(user)
+
+	canChangePassword = false
+
+	json.NewEncoder(w).Encode(MessageRes{
+		Status: "success",
+		Message: "Password Changed successfully",
+	})
 }
 
 func LogoutUser(w http.ResponseWriter, r *http.Request ){
@@ -219,4 +311,3 @@ func GetUsers(w http.ResponseWriter, r *http.Request ){
 	// IMPLEMENT GET USERS GET REQUEST HERE
 	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
 }
-
