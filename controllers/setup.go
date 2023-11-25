@@ -18,14 +18,12 @@ func New() http.Handler {
 	router.HandleFunc("/api/verify-otp", VerifyOTP).Methods("POST")
 	router.HandleFunc("/api/change-password", ChangePassword).Methods("POST")
 	router.HandleFunc("/api/login", LoginUser).Methods("POST")
-
-	// In Progess
 	router.Handle("/api/logout", utils.Authenticate(http.HandlerFunc(LogoutUser))).Methods("POST")
-
-	//Pending
-	router.HandleFunc("/api/refresh-token", RefreshToken).Methods("POST")
-	router.HandleFunc("/api/user/{id}", DeleteUser).Methods("DELETE")
+	router.Handle("/api/refresh-token", utils.Authenticate(http.HandlerFunc(RefreshToken))).Methods("POST")
+	router.Handle("/api/delete", utils.Authenticate(http.HandlerFunc(DeleteUser))).Methods("DELETE")
+	router.HandleFunc("/api/user/{id}", DeleteUserByID).Methods("DELETE")
 	router.HandleFunc("/api/users", GetUsers).Methods("GET")
+
 
 	return router
 }
