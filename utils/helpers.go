@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/json"
@@ -8,7 +9,10 @@ import (
 	"net/http"
 	"net/mail"
 	"net/smtp"
+	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jordan-wright/email"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -62,7 +66,50 @@ func SendEmail(from, fromName, to, subject, authPassword, body string) {
 	e.HTML = []byte(body)
 	// e.Send("smtp.gmail.com:587", smtp.PlainAuth("", "enirox001@gmail.com", "colz rcfr scol bxkp", "smtp.gmail.com"))
 	e.SendWithTLS("smtp.gmail.com:465", smtp.PlainAuth("", from, authPassword, "smtp.gmail.com"), &tls.Config{ServerName: "smtp.gmail.com"})
-
 }
 
+func GenerateToken(userID int) (string, error) {
+	secret := os.Getenv("JWT_SECRET")
 
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
+		"iat": time.Now().Unix(),
+		"user_id": userID,
+	})
+
+	tokenString, err := token.SignedString([]byte(secret))
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+func Authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenString := r.Header.Get("Authorization")
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+
+		if err != nil || !token.Valid {
+			RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
+			return 
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+
+		if !ok {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+		}
+
+		userID := claims["user_id"].(float64)
+
+		ctx := context.WithValue(r.Context(), "userID", userID)
+
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}

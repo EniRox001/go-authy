@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 
+	// "time"
+
 	"github.com/enirox/go-authy/models"
 	"github.com/enirox/go-authy/utils"
 	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var validate *validator.Validate
@@ -18,6 +21,11 @@ var validate *validator.Validate
 type UserReq struct {
 	FirstName string `json:"first_name" validate:"required"`
 	LastName string `json:"last_name" validate:"required"`
+	Email string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type UserLoginReq struct {
 	Email string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
@@ -44,6 +52,13 @@ type Res struct {
 	Status string `json:"status"`
 	Message string `json:"message"`
 	Data interface{} `json:"data"`
+}
+
+type AuthRes struct {
+	Status string `json:"status"`
+	Message string `json:"message"`
+	Data interface{} `json:"data"`
+	Token string `json:"token"`
 }
 
 type MessageRes struct {
@@ -123,8 +138,51 @@ func CreateUser(w http.ResponseWriter, r *http.Request ){
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request ){
-	// IMPLEMENT LOGIN USER POST REQUEST HERE
-	fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+	w.Header().Set("Content-Type", "application/json")
+
+	var input UserLoginReq
+
+	var user models.User
+
+	body, _ := io.ReadAll(r.Body)
+	_ = json.Unmarshal(body, &input)
+
+	validate = validator.New()
+	err := validate.Struct(input)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Validations error")
+		return
+	}
+
+	if err := models.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+		utils.RespondWithError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	errf := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password))
+
+	if errf != nil && errf == bcrypt.ErrMismatchedHashAndPassword {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Password is invalid")
+		return
+	}
+
+	token, err := utils.GenerateToken(int(user.ID))
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Internal server error")
+	}
+
+	json.NewEncoder(w).Encode(AuthRes{
+		Status: "success",
+		Message: "user logged in successfully",
+		Data: UserRes{
+			FirstName: user.FirstName,
+			LastName: user.LastName,
+			Email: user.Email,
+		},
+		Token: token,
+	})
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request ){
@@ -150,7 +208,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request ){
 		utils.RespondWithError(w, http.StatusBadRequest, "Validation error")
 		return
 	}
-
+ 
 	user.FirstName = input.FirstName
 	user.LastName = input.LastName
 	user.Email = input.Email
