@@ -76,7 +76,7 @@ func GenerateToken(userID int) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(time.Minute * 30).Unix(),
 		"iat":     time.Now().Unix(),
 		"user_id": userID,
 	})
