@@ -65,6 +65,7 @@ type MessageRes struct {
 }
 
 type UserRes struct {
+	ID        uint   `json:"id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Email     string `json:"email"`
@@ -131,6 +132,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		Status:  "success",
 		Message: "User registration successful",
 		Data: UserRes{
+			ID:        user.ID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
@@ -176,6 +178,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		Status:  "success",
 		Message: "user logged in successfully",
 		Data: UserRes{
+			ID:        user.ID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
@@ -235,6 +238,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		Status:  "success",
 		Message: "User account retrieved successfully",
 		Data: UserRes{
+			ID:        user.ID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
@@ -404,6 +408,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 		Status:  "success",
 		Message: "token refreshed successfully",
 		Data: UserRes{
+			ID:        user.ID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
@@ -462,6 +467,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	for _, user := range users {
 		userList.Users = append(userList.Users, UserRes{
+			ID:        user.ID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
