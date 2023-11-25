@@ -30,13 +30,13 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func HashPassword(password string) (string, error) {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-    return string(bytes), err
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
 }
 
 func CheckPasswordHash(password, hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-    return err == nil
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
 func CheckEmail(email string) bool {
@@ -45,7 +45,7 @@ func CheckEmail(email string) bool {
 }
 
 func GenerateOTP(max int) string {
-	var table = [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
+	table := [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
 
 	b := make([]byte, max)
 	n, err := io.ReadAtLeast(rand.Reader, b, max)
@@ -65,20 +65,23 @@ func SendEmail(from, fromName, to, subject, authPassword, body string) {
 	e.Subject = subject
 	e.HTML = []byte(body)
 	// e.Send("smtp.gmail.com:587", smtp.PlainAuth("", "enirox001@gmail.com", "colz rcfr scol bxkp", "smtp.gmail.com"))
-	e.SendWithTLS("smtp.gmail.com:465", smtp.PlainAuth("", from, authPassword, "smtp.gmail.com"), &tls.Config{ServerName: "smtp.gmail.com"})
+	e.SendWithTLS(
+		"smtp.gmail.com:465",
+		smtp.PlainAuth("", from, authPassword, "smtp.gmail.com"),
+		&tls.Config{ServerName: "smtp.gmail.com"},
+	)
 }
 
 func GenerateToken(userID int) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"exp": time.Now().Add(time.Hour * 24).Unix(),
-		"iat": time.Now().Unix(),
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"iat":     time.Now().Unix(),
 		"user_id": userID,
 	})
 
 	tokenString, err := token.SignedString([]byte(secret))
-
 	if err != nil {
 		return "", err
 	}
@@ -95,7 +98,7 @@ func Authenticate(next http.Handler) http.Handler {
 
 		if err != nil || !token.Valid {
 			RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
-			return 
+			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)

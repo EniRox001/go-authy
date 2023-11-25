@@ -463,14 +463,14 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		userList.Users = append(userList.Users, UserRes{
 			FirstName: user.FirstName,
-			LastName: user.LastName,
-			Email: user.Email,
+			LastName:  user.LastName,
+			Email:     user.Email,
 		})
 	}
 
 	json.NewEncoder(w).Encode(Res{
-		Status: "success",
+		Status:  "success",
 		Message: "Users retrieved successfully",
-		Data: userList.Users, 
+		Data:    userList.Users,
 	})
 }

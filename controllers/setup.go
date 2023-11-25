@@ -24,6 +24,5 @@ func New() http.Handler {
 	router.HandleFunc("/api/user/{id}", DeleteUserByID).Methods("DELETE")
 	router.HandleFunc("/api/users", GetUsers).Methods("GET")
 
-
 	return router
 }

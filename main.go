@@ -14,7 +14,7 @@ func main() {
 	handlers := controllers.New()
 
 	server := &http.Server{
-		Addr: "0.0.0.0:8008",
+		Addr:    "0.0.0.0:8008",
 		Handler: handlers,
 	}
 
