@@ -10,7 +10,7 @@ import (
 func New() http.Handler {
 	router := mux.NewRouter()
 
-	// Completed
+	// Completed Routes
 	router.HandleFunc("/api/register", CreateUser).Methods("POST")
 	router.HandleFunc("/api/user/{id}", GetUser).Methods("GET")
 	router.HandleFunc("/api/user/{id}", UpdateUser).Methods("PATCH")
